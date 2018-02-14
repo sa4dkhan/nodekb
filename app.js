@@ -41,9 +41,11 @@ app.use(express.static(path.join(__dirname, 'public')))
 //Express Session Middleware
 app.use(session({
   secret: 'keyboard cat',
-  resave: false,
+  // resave: false,
+  resave: true,
   saveUninitialized: true,
-  cookie: { secure: true }
+  saveUninitialized: true
+  // cookie: { secure: true }
 }));
 
 //Express Messages Middleware
@@ -54,22 +56,29 @@ app.use(function (req, res, next) {
 });
 
 //Express validator Middleware
-// app.use(expressValidator(middlewareOptions));
-// app.post('/create-user', yourValidationChains, (req, res, next) => {
-//   const errorFormatter = ({ location, msg, param, value, nestedErrors }) => {
-//     // Build your resulting errors however you want! String, object, whatever - it works!
-//     return `${location}[${param}]: ${msg}`;
-//   };
-//   const result = validationResult(req).formatWith(errorFormatter);
-//   if (!result.isEmpty()) {
-//     // Response will contain something like
-//     // { errors: [ "body[password]: must be at least 10 chars long" ] }
-//     return res.json({ errors: result.array() });
-//   }
-//
-//   // Handle your request as if no errors happened
-// });
+//validator2.Express Validator
+app.use(expressValidator({
+  errorFormatter: function(param, msg, value) {
+      var namespace = param.split('.')
+      , root    = namespace.shift()
+      , formParam = root;
 
+    while(namespace.length) {
+      formParam += '[' + namespace.shift() + ']';
+    }
+    return {
+      param : formParam,
+      msg   : msg,
+      value : value
+    };
+  },
+ //   customValidators: {
+ //    isPsd1EqPsd2: function(psd1,psd2) {
+ //        console.log(psd1===psd2);
+ //        return psd1===psd2;
+ //    }
+ // }
+}));
 
 //Home Route
 
@@ -107,18 +116,37 @@ app.get('/articles/add', (req, res) =>
 
 // Add Submit POST Route
 app.post('/articles/add', function(req, res){
-  let article = new Article();
-  article.title = req.body.title;
-  article.author = req.body.author;
-  article.body = req.body.body;
-  article.save(function(err){
-    if(err){
-      console.log(err);
-      return;
-    }else{
-      res.redirect('/');
-    }
-  });
+  req.checkBody('title', 'Title is required').notEmpty();
+  req.checkBody('author', 'Author is required').notEmpty();
+  req.checkBody('body', 'Body is required').notEmpty();
+
+  //Get errors
+  let errors = req.validationErrors();
+
+  if(errors){
+    res.render('add_article',{
+      title:'Add Article',
+      errors:errors
+    })
+  }else{
+    let article = new Article();
+    article.title = req.body.title;
+    article.author = req.body.author;
+    article.body = req.body.body;
+
+
+    article.save(function(err){
+      if(err){
+        console.log(err);
+        return;
+      }else{
+        req.flash('success','Article Added!');
+        res.redirect('/');
+      }
+    });
+  }
+
+
 });
 
 //Load Edit Form
@@ -147,6 +175,7 @@ app.post('/articles/edit/:id', function(req, res){
       console.log(err);
       return;
     }else{
+      req.flash('success','Article Updated!');
       res.redirect('/');
     }
   });
