@@ -5,6 +5,7 @@ const bodyParser = require('body-parser');
 const expressValidator = require ('express-validator');
 const flash = require('connect-flash');
 const session = require('express-session');
+const config = require('./config/database');
 
 mongoose.connect('mongodb://localhost/nodekb');
 let db = mongoose.connection;
@@ -95,102 +96,13 @@ app.get('/', function(req, res){
   });
 });
 
-//Get Single Article
-app.get('/article/:id', function(req, res){
-  Article.findById(req.params.id, function(err, article){
-    res.render('article',
-      {
-        article:article
-      })
-  });
-});
+//Route Files
+let articles = require('./routes/articles');
+let users = require('./routes/users');
+app.use('/articles', articles);
+app.use('/users', users);
 
-
-//Add Route
-app.get('/articles/add', (req, res) =>
-  res.render('add_article',
-    {
-      title: 'Add Article'
-    })
-)
-
-// Add Submit POST Route
-app.post('/articles/add', function(req, res){
-  req.checkBody('title', 'Title is required').notEmpty();
-  req.checkBody('author', 'Author is required').notEmpty();
-  req.checkBody('body', 'Body is required').notEmpty();
-
-  //Get errors
-  let errors = req.validationErrors();
-
-  if(errors){
-    res.render('add_article',{
-      title:'Add Article',
-      errors:errors
-    })
-  }else{
-    let article = new Article();
-    article.title = req.body.title;
-    article.author = req.body.author;
-    article.body = req.body.body;
-
-
-    article.save(function(err){
-      if(err){
-        console.log(err);
-        return;
-      }else{
-        req.flash('success','Article Added!');
-        res.redirect('/');
-      }
-    });
-  }
-
-
-});
-
-//Load Edit Form
-app.get('/article/edit/:id', function(req, res){
-  Article.findById(req.params.id, function(err, article){
-    res.render('edit_article',
-      {
-        title: 'Edit Article',
-        article:article
-      })
-    // console.log(article);
-  });
-});
-
-// Update Submit POST Route
-app.post('/articles/edit/:id', function(req, res){
-  let article = {};
-  article.title = req.body.title;
-  article.author = req.body.author;
-  article.body = req.body.body;
-
-  let query = {_id:req.params.id}
-
-  Article.update(query, article, function(err){
-    if(err){
-      console.log(err);
-      return;
-    }else{
-      req.flash('success','Article Updated!');
-      res.redirect('/');
-    }
-  });
-});
-
-// Delete Post
-app.delete('/article/:id', function(req, res){
-  let query = {_id:req.params.id}
-
-  Article.remove(query, function(err){
-    if(err){
-      console.log(err)
-    }
-    res.send('Success')
-  });
-});
 //Start Server
-app.listen(3000, () => console.log('nodkb listening on port 3000!'))
+app.listen(3000, () =>
+  console.log('nodkb listening on port 3000!')
+);

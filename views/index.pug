@@ -4,7 +4,7 @@ block content
     ul.list-group
       each article, i in articles
         li.list-group-item
-          a(href="/article/"+article._id)= article.title
+          a(href="/articles/"+article._id)= article.title
         li.list-group-item= article.author
         li.list-group-item= article.body
         
